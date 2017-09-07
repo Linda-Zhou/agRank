@@ -39,7 +39,7 @@
 #'
 #' @export
 
-rankAg = function(data, K = NA, method, rate=1, maxiter=1e4, tol=1e-8, start=rnorm(ncol(data),1,1), decay=1.01){
+rankAg = function(data, K = diag(ncol(data)), method = "TH"){
   #let m be the number of varieties,
   #let n be the number of farmers.
   #data is an n*m matrix,
@@ -47,28 +47,28 @@ rankAg = function(data, K = NA, method, rate=1, maxiter=1e4, tol=1e-8, start=rno
   #the entry where varieties are not included is 0
 
 
-  nvar = ncol(data)
-  nobs = nrow(data)
+  nVarieties = ncol(data)
 
-  mu = rep(1, nvar) #mean vector of the normal prior on scores
-  #rate = 0.1
-  #maxiter = 5000
-  #tol = 1e-8
+
+  mu = rep(1, nVarieties) #mean vector of the normal prior on scores
+  rate = 1
+  maxiter = 5000
+  tol = 1e-8
   #starting point for parameters, the first nvar elements are for scores,
   #the next nobs elements are for adherences
-  #start = rnorm(nvar,10,1)
-  #decay = 1.1
-
-
+  start = rnorm(ncol(data),10,1)
+  decay = 1.1
+  param=start
+  sigma <- diag(nVarieties)
 
   if(method == 'BT'){
     if(!is.matrix(K)){
       stop('relationship matrix must be specified for BT model')
     }
-    score = sgdBT(data, mu, K, rate, maxiter, tol, start, decay)$score
-    names(score) = 1:nvar #assign labels
+    score = sgdBT(data, mu, K, rate, maxiter, tol, start, decay)$scores
+    names(score) = 1:nVarieties #assign labels
     ranking = as.numeric(names(sort(score, decreasing = T)))
-    ranks = match(1:nvar, ranking)
+    ranks = match(1:nVarieties, ranking)
 
   } else if(method == 'PL'){
     if(!is.matrix(K)){
@@ -76,9 +76,9 @@ rankAg = function(data, K = NA, method, rate=1, maxiter=1e4, tol=1e-8, start=rno
     }
 
     score = sgdPL(data, mu, K, rate, maxiter, tol, start, decay)$score
-    names(score) = 1:nvar #assign labels
+    names(score) = 1:nVarieties #assign labels
     ranking = as.numeric(names(sort(score, decreasing = T)))
-    ranks = match(1:nvar, ranking)
+    ranks = match(1:nVarieties, ranking)
 
   } else if(method == 'TH'){
 
@@ -86,21 +86,21 @@ rankAg = function(data, K = NA, method, rate=1, maxiter=1e4, tol=1e-8, start=rno
       stop('relationship matrix must be specified for TH model')
     }
 
-    score = sgdThurs(data, mu, K, rate, maxiter, tol, start, decay)$score
-    names(score) = 1:nvar #assign labels
+    score = sgdThurs(data, mu, K, rate, maxiter, tol, start, decay)$scores
+    names(score) = 1:nVarieties #assign labels
     ranking = as.numeric(names(sort(score, decreasing = T)))
-    ranks = match(1:nvar, ranking)
+    ranks = match(1:nVarieties, ranking)
 
   } else if(method == 'MPM'){
 
     if(!is.matrix(K)){
       stop('relationship matrix must be specified for MPM model')
     }
-    start = c(start, rep(1, nvar))
+    start = c(start, rep(1, nVarieties))
     score = sgdMPM(data, mu, K, rate, maxiter, tol, start, decay)$score
-    names(score) = 1:nvar #assign labels
+    names(score) = 1:nVarieties #assign labels
     ranking = as.numeric(names(sort(score, decreasing = T)))
-    ranks = match(1:nvar, ranking)
+    ranks = match(1:nVarieties, ranking)
 
 
   } else if(method == 'LM'){
@@ -129,3 +129,4 @@ rankAg = function(data, K = NA, method, rate=1, maxiter=1e4, tol=1e-8, start=rno
   return(list(ranks = ranks, ranking = ranking))
 
 }
+
